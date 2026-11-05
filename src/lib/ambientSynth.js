@@ -12,6 +12,7 @@ const CHORDS = [
 
 const BELLS = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5];
 const CHORD_SECONDS = 7;
+const GAIN = 1.6;
 
 export function createAmbient() {
   let ctx = null;
@@ -27,8 +28,12 @@ export function createAmbient() {
     if (!Context) return false;
     ctx = new Context();
     master = ctx.createGain();
-    master.gain.value = level * 0.5;
-    master.connect(ctx.destination);
+    master.gain.value = level * GAIN;
+    // A gentle limiter keeps the louder mix from clipping.
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -14;
+    limiter.ratio.value = 6;
+    master.connect(limiter).connect(ctx.destination);
     return true;
   }
 
@@ -39,7 +44,7 @@ export function createAmbient() {
     osc.frequency.value = freq;
     osc.detune.value = (Math.random() - 0.5) * 8;
     gain.gain.setValueAtTime(0, start);
-    gain.gain.linearRampToValueAtTime(0.07, start + 2.2);
+    gain.gain.linearRampToValueAtTime(0.13, start + 1.6);
     gain.gain.linearRampToValueAtTime(0.0001, start + length + 1.6);
     osc.connect(gain).connect(master);
     osc.start(start);
@@ -54,7 +59,7 @@ export function createAmbient() {
     osc.type = "sine";
     osc.frequency.value = freq;
     gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.09, now + 0.02);
+    gain.gain.linearRampToValueAtTime(0.2, now + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.4);
     osc.connect(gain).connect(master);
     osc.start(now);
@@ -98,7 +103,7 @@ export function createAmbient() {
     },
     setVolume(value) {
       level = value;
-      if (master) master.gain.setTargetAtTime(value * 0.5, ctx.currentTime, 0.05);
+      if (master) master.gain.setTargetAtTime(value * GAIN, ctx.currentTime, 0.05);
     },
   };
 }

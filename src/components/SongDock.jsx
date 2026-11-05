@@ -2,7 +2,8 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 import { song } from "../content/copy.js";
 import { createAmbient } from "../lib/ambientSynth.js";
 
-const VOLUME_KEY = "sunflower-sky-volume";
+const VOLUME_KEY = "sunflower-sky-volume-v2";
+const DEFAULT_VOLUME = 0.8;
 
 function readVolume() {
   try {
@@ -11,7 +12,7 @@ function readVolume() {
   } catch {
     /* keep the default if storage is blocked */
   }
-  return 0.6;
+  return DEFAULT_VOLUME;
 }
 
 const SongDock = forwardRef(function SongDock({ hidden }, ref) {
@@ -52,7 +53,7 @@ const SongDock = forwardRef(function SongDock({ hidden }, ref) {
   }
 
   function start() {
-    const level = volume > 0 ? volume : 0.6;
+    const level = volume > 0 ? volume : DEFAULT_VOLUME;
     if (level !== volume) setVolume(level);
     wantPlay.current = true;
     // Unlock Web Audio now, while the click is still fresh, in case the mp3 is missing.
@@ -110,7 +111,16 @@ const SongDock = forwardRef(function SongDock({ hidden }, ref) {
           <span className="song-kicker">{artist}</span>
           <strong>{title}</strong>
         </span>
-        <span className="song-action">{playing ? "หยุด" : "เล่นเพลง"}</span>
+        <span className="song-action">
+          {playing && (
+            <span className="eq" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+          )}
+          {playing ? "หยุด" : "เล่นเพลง"}
+        </span>
       </button>
       <div className="song-volume">
         <button type="button" onClick={() => changeVolume(-0.1)} disabled={hidden || volume <= 0} aria-label="ลดเสียง" tabIndex={hidden ? -1 : 0}>
