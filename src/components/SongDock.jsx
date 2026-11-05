@@ -17,6 +17,7 @@ function readVolume() {
 const SongDock = forwardRef(function SongDock({ hidden }, ref) {
   const audioRef = useRef(null);
   const synthRef = useRef(null);
+  const wantPlay = useRef(false);
   const [playing, setPlaying] = useState(false);
   const [useSynth, setUseSynth] = useState(false);
   const [volume, setVolume] = useState(readVolume);
@@ -45,23 +46,31 @@ const SongDock = forwardRef(function SongDock({ hidden }, ref) {
     setPlaying(ok);
   }
 
+  function fallToSynth() {
+    setUseSynth(true);
+    if (wantPlay.current) startSynth();
+  }
+
   function start() {
     const level = volume > 0 ? volume : 0.6;
     if (level !== volume) setVolume(level);
+    wantPlay.current = true;
+    // Unlock Web Audio now, while the click is still fresh, in case the mp3 is missing.
+    synth().prime();
     if (useSynth) {
       startSynth();
       return;
     }
     const audio = audioRef.current;
     if (!audio) return;
+    if (audio.error) {
+      fallToSynth();
+      return;
+    }
     audio.volume = level;
     audio.play().then(() => setPlaying(true)).catch(() => {
-      if (audio.error) {
-        setUseSynth(true);
-        startSynth();
-      } else {
-        setPlaying(false);
-      }
+      if (audio.error || audio.networkState === 3) fallToSynth();
+      else setPlaying(false);
     });
   }
 
@@ -73,6 +82,7 @@ const SongDock = forwardRef(function SongDock({ hidden }, ref) {
 
   function toggle() {
     if (playing) {
+      wantPlay.current = false;
       if (useSynth) synthRef.current?.stop();
       else audioRef.current?.pause();
       setPlaying(false);
@@ -91,7 +101,7 @@ const SongDock = forwardRef(function SongDock({ hidden }, ref) {
         src={song.src}
         loop
         preload="auto"
-        onError={() => setUseSynth(true)}
+        onError={fallToSynth}
         onPause={() => !useSynth && setPlaying(false)}
         onPlay={() => !useSynth && setPlaying(true)}
       />

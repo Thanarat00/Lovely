@@ -76,6 +76,11 @@ export function createAmbient() {
   }
 
   return {
+    /** Call inside a click so the browser lets sound start later. */
+    prime() {
+      if (!ensure()) return;
+      if (ctx.state === "suspended") ctx.resume();
+    },
     async start() {
       if (!ensure()) return false;
       if (ctx.state === "suspended") await ctx.resume();
