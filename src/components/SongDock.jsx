@@ -40,6 +40,19 @@ const SongDock = forwardRef(function SongDock({ hidden }, ref) {
 
   useEffect(() => () => synthRef.current?.stop(), []);
 
+  // If the browser kept sound locked after the first tap, any later tap or key unlocks it.
+  useEffect(() => {
+    function unlock() {
+      if (wantPlay.current) synthRef.current?.prime();
+    }
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("keydown", unlock);
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
+
   async function startSynth() {
     const engine = synth();
     engine.setVolume(volume);

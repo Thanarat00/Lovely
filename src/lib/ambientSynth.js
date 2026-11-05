@@ -68,6 +68,11 @@ export function createAmbient() {
 
   function nextChord() {
     if (!running) return;
+    if (ctx.state !== "running") {
+      // Browser has not allowed sound yet; wait for the next tap instead of stacking chords.
+      timers.push(setTimeout(nextChord, 400));
+      return;
+    }
     const now = ctx.currentTime;
     CHORDS[chordIndex % CHORDS.length].forEach((freq) => pad(freq, now, CHORD_SECONDS));
     chordIndex += 1;
@@ -76,6 +81,10 @@ export function createAmbient() {
 
   function nextBell() {
     if (!running) return;
+    if (ctx.state !== "running") {
+      timers.push(setTimeout(nextBell, 600));
+      return;
+    }
     if (Math.random() > 0.25) bell();
     timers.push(setTimeout(nextBell, 1400 + Math.random() * 2200));
   }
@@ -88,7 +97,7 @@ export function createAmbient() {
     },
     async start() {
       if (!ensure()) return false;
-      if (ctx.state === "suspended") await ctx.resume();
+      if (ctx.state === "suspended") ctx.resume().catch(() => {});
       if (running) return true;
       running = true;
       nextChord();
