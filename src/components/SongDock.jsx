@@ -16,11 +16,9 @@ function readVolume() {
 }
 
 const SongDock = forwardRef(function SongDock({ hidden }, ref) {
-  const audioRef = useRef(null);
   const synthRef = useRef(null);
   const wantPlay = useRef(false);
   const [playing, setPlaying] = useState(false);
-  const [useSynth, setUseSynth] = useState(false);
   const [volume, setVolume] = useState(readVolume);
 
   function synth() {
@@ -29,7 +27,6 @@ const SongDock = forwardRef(function SongDock({ hidden }, ref) {
   }
 
   useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = volume;
     synthRef.current?.setVolume(volume);
     try {
       localStorage.setItem(VOLUME_KEY, String(volume));
@@ -53,42 +50,17 @@ const SongDock = forwardRef(function SongDock({ hidden }, ref) {
     };
   }, []);
 
-  async function startSynth() {
-    const engine = synth();
-    engine.setVolume(volume);
-    const ok = await engine.start();
-    setPlaying(ok);
-  }
-
-  function fallToSynth() {
-    setUseSynth(true);
-    if (wantPlay.current) startSynth();
-  }
-
-  function start() {
+  async function start() {
     const level = volume > 0 ? volume : DEFAULT_VOLUME;
     if (level !== volume) setVolume(level);
     wantPlay.current = true;
-    // Unlock Web Audio now, while the click is still fresh, in case the mp3 is missing.
-    synth().prime();
-    if (useSynth) {
-      startSynth();
-      return;
-    }
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (audio.error) {
-      fallToSynth();
-      return;
-    }
-    audio.volume = level;
-    audio.play().then(() => setPlaying(true)).catch(() => {
-      if (audio.error || audio.networkState === 3) fallToSynth();
-      else setPlaying(false);
-    });
+    const engine = synth();
+    engine.prime();
+    engine.setVolume(level);
+    setPlaying(await engine.start());
   }
 
-  useImperativeHandle(ref, () => ({ start }), [useSynth, volume]);
+  useImperativeHandle(ref, () => ({ start }), [volume]);
 
   function changeVolume(delta) {
     setVolume((current) => Math.min(1, Math.max(0, Math.round((current + delta) * 10) / 10)));
@@ -97,32 +69,19 @@ const SongDock = forwardRef(function SongDock({ hidden }, ref) {
   function toggle() {
     if (playing) {
       wantPlay.current = false;
-      if (useSynth) synthRef.current?.stop();
-      else audioRef.current?.pause();
+      synthRef.current?.stop();
       setPlaying(false);
       return;
     }
     start();
   }
 
-  const title = useSynth ? "เพลงเบา ๆ ของวันนี้" : song.title;
-  const artist = useSynth ? "ทำขึ้นเพื่อเธอ" : song.artist;
-
   return (
-    <section className="song-dock" data-hidden={hidden ? "true" : "false"} aria-hidden={hidden || undefined} aria-label={`${title} โดย ${artist}`}>
-      <audio
-        ref={audioRef}
-        src={song.src}
-        loop
-        preload="auto"
-        onError={fallToSynth}
-        onPause={() => !useSynth && setPlaying(false)}
-        onPlay={() => !useSynth && setPlaying(true)}
-      />
+    <section className="song-dock" data-hidden={hidden ? "true" : "false"} aria-hidden={hidden || undefined} aria-label={`${song.title} โดย ${song.artist}`}>
       <button type="button" className="song-toggle" aria-pressed={playing} onClick={toggle} tabIndex={hidden ? -1 : 0}>
         <span className="song-meta">
-          <span className="song-kicker">{artist}</span>
-          <strong>{title}</strong>
+          <span className="song-kicker">{song.artist}</span>
+          <strong>{song.title}</strong>
         </span>
         <span className="song-action">
           {playing && (

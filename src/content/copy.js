@@ -1,9 +1,8 @@
 /** แก้ข้อความภาษาไทยทั้งเว็บที่ไฟล์นี้ รวมถึงตัวจดหมาย */
 
 export const song = {
-  title: "สายรุ้งหลังฝนโปรย",
-  artist: "PURPEECH",
-  src: `${import.meta.env?.BASE_URL ?? "./"}audio/purpeech.mp3`,
+  title: "เปียโนในสวนทานตะวัน",
+  artist: "ทำขึ้นเพื่อเธอ",
 };
 
 export const sky = {
